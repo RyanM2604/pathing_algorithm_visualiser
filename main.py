@@ -1,10 +1,11 @@
 import csv
 from heapq import heapify, heappop, heappush
+import folium
 
-with open('/Users/ryanmaudgalya/Desktop/Code/Dijkstra/nodes.csv', newline='') as csvfile:
+with open('/Users/ryanmaudgalya/Desktop/Code/Dijkstra_program/nodes.csv', newline='') as csvfile:
     nodes = list(csv.reader(csvfile))
 
-with open('/Users/ryanmaudgalya/Desktop/Code/Dijkstra/edges.csv', newline='') as csvfile:
+with open('/Users/ryanmaudgalya/Desktop/Code/Dijkstra_program/edges.csv', newline='') as csvfile:
     edges = list(csv.reader(csvfile))
 
 num_nodes = len(nodes)
@@ -32,7 +33,7 @@ for i in range(1, num_nodes):
 node_dict = {node.id: (node.lon, node.lat) for node in node_list}
 
 for i in range(1, num_edges):
-    edges_list.append(Edge(edges[i][1], edges[i][2], edges[i][3], edges[i][4]))
+    edges_list.append(Edge(edges[i][1], edges[i][2], edges[i][3], edges[i][4]))  
 
 class Graph:
     def __init__(self, graph: dict = {}) -> None:
@@ -67,20 +68,60 @@ class Graph:
                     distances[neighbor] = temp_dist
                     heappush(pq, (temp_dist, neighbor))
 
-        return distances
+        predecessors = {node: None for node in self.graph}
 
+        for node, distance in distances.items():
+            for neighbor, weight in self.graph[node].items():
+                if distances[neighbor] == distance + weight:
+                    predecessors[neighbor] = node
+
+        return distances, predecessors
+
+                
+    def shortest_path(self, source: str, target: str):
+        # Generate the predecessors dict
+        _, predecessors = self.dijkstra(source)
+
+        path = []
+        current_node = target
+
+        # Backtrack from the target node using predecessors
+        while current_node:
+            path.append(current_node)
+            current_node = predecessors[current_node]
+
+        # Reverse the path and return it
+        path.reverse()
+
+        return path
     
 graph = Graph()
 
 for i in range(num_edges-1):
     graph.create_edge(edges_list[i].source, edges_list[i].target, edges_list[i].length)
 
-distances = graph.dijkstra(int(input("first node: ")))
+distances, predecessors = graph.dijkstra(250197412)
+print(distances, "\n")
 
-to_second_node = distances[int(input("second node: "))]
-print(f"The shortest distance from the first node to the second node is {to_second_node}")
+# Access the distance to F specifically
+to_node = distances[299276434]
+print(f"The shortest distance from 250197412 to 299276434 is {to_node}")
 
+# Find the path from B to F
+path = graph.shortest_path(250197412, 299276434)
+print(f"The path from source to target is {path}")
 
+def build_map():
+    center = (43.4764947, -80.5291953)  # Center map around the first node
+    folium_map = folium.Map(location=center, zoom_start=15)
 
-#2631870334
-#12069393983
+    # Add all nodes as markers
+    for node in node_list:
+        folium.CircleMarker(location=(node.lat, node.lon), radius=3, color="green", fill=True).add_to(folium_map)
+    
+    return folium_map
+
+#build_map().save("map.html")
+
+#3163088314
+#9996176257
