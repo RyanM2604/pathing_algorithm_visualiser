@@ -1,6 +1,7 @@
 import csv
 from heapq import heapify, heappop, heappush
 import folium
+import webbrowser
 
 with open('/Users/ryanmaudgalya/Desktop/Code/Dijkstra_program/nodes.csv', newline='') as csvfile:
     nodes = list(csv.reader(csvfile))
@@ -104,11 +105,11 @@ distances, predecessors = graph.dijkstra(250197412)
 print(distances, "\n")
 
 # Access the distance to F specifically
-to_node = distances[299276434]
+to_node = distances[12211357325]
 print(f"The shortest distance from 250197412 to 299276434 is {to_node}")
 
 # Find the path from B to F
-path = graph.shortest_path(250197412, 299276434)
+path = graph.shortest_path(250197412, 12211357325)
 print(f"The path from source to target is {path}")
 
 def build_map():
@@ -119,9 +120,21 @@ def build_map():
     for node in node_list:
         folium.CircleMarker(location=(node.lat, node.lon), radius=3, color="green", fill=True).add_to(folium_map)
     
+    dijkstra_locations = []
+
+    for node_id in path:
+        if node_id in node_dict:  # Check that the node exists in node_dict
+            lon, lat = node_dict[node_id]  # Get the longitude and latitude
+            dijkstra_locations.append([lat, lon])
+
+    folium.PolyLine(locations=dijkstra_locations, 
+                    color="#FF0000", 
+                    weight=5, 
+                    tooltip="Shortest Dijkstra's Path").add_to(folium_map)
+    
+    print(dijkstra_locations)
+    
     return folium_map
 
-#build_map().save("map.html")
-
-#3163088314
-#9996176257
+output_file = "map.html"
+build_map().save(output_file)
