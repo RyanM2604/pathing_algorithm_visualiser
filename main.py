@@ -1,7 +1,11 @@
 import csv
 from heapq import heapify, heappop, heappush
 import folium
+import http.server
+import socketserver
 import webbrowser
+import threading
+import os
 
 with open('/Users/ryanmaudgalya/Desktop/Code/Dijkstra_program/nodes.csv', newline='') as csvfile:
     nodes = list(csv.reader(csvfile))
@@ -101,40 +105,61 @@ graph = Graph()
 for i in range(num_edges-1):
     graph.create_edge(edges_list[i].source, edges_list[i].target, edges_list[i].length)
 
-distances, predecessors = graph.dijkstra(250197412)
-print(distances, "\n")
+init_node = int(input("What is the initial node: "))
+final_node = int(input("What is the final node: "))
 
-# Access the distance to F specifically
-to_node = distances[12211357325]
-print(f"The shortest distance from 250197412 to 299276434 is {to_node}")
+distances, predecessors = graph.dijkstra(init_node)
 
-# Find the path from B to F
-path = graph.shortest_path(250197412, 12211357325)
-print(f"The path from source to target is {path}")
+to_node = distances[final_node]
+
+path = graph.shortest_path(init_node, final_node)
 
 def build_map():
-    center = (43.4764947, -80.5291953)  # Center map around the first node
-    folium_map = folium.Map(location=center, zoom_start=15)
+    center = (43.470625, -80.5454524)  # Center of map
+    folium_map = folium.Map(location=center, zoom_start=16)
 
     # Add all nodes as markers
     for node in node_list:
-        folium.CircleMarker(location=(node.lat, node.lon), radius=3, color="green", fill=True).add_to(folium_map)
+        folium.CircleMarker(
+            location=(node.lat, node.lon), radius=3, color="green", fill=True, popup=node.id
+        ).add_to(folium_map)
     
-    dijkstra_locations = []
+    # Prepare coordinates for the animated path
+    dijkstra_locations = [[node_dict[int(node_id)][1], node_dict[int(node_id)][0]] for node_id in path]
 
-    for node_id in path:
-        if node_id in node_dict:  # Check that the node exists in node_dict
-            lon, lat = node_dict[node_id]  # Get the longitude and latitude
-            dijkstra_locations.append([lat, lon])
-
-    folium.PolyLine(locations=dijkstra_locations, 
-                    color="#FF0000", 
-                    weight=5, 
-                    tooltip="Shortest Dijkstra's Path").add_to(folium_map)
-    
-    print(dijkstra_locations)
-    
+    # Add the full path polyline for reference (optional)
+    folium.PolyLine(
+        locations=dijkstra_locations, color="blue", weight=2.5, opacity=0.5, tooltip="Full Path"
+    ).add_to(folium_map)
     return folium_map
 
-output_file = "map.html"
+output_file = "Dijkstra_program/map.html"
 build_map().save(output_file)
+
+PORT = 8000
+
+def serve_map():
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
+        print(f"Serving at http://localhost:{PORT}")
+        httpd.serve_forever()
+
+# Open the map in the default browser
+def open_browser():
+    webbrowser.open(f"http://localhost:{PORT}/{output_file}")
+
+# Start the server in a new thread
+thread = threading.Thread(target=serve_map, daemon=True)
+thread.start()
+
+# Open the browser
+open_browser()
+
+# Keep the script running so the server stays alive
+try:
+    thread.join()
+except KeyboardInterrupt:
+    print("Server stopped.")
+
+# 1563802105
+# 2105113779
